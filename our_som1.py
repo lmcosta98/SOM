@@ -1,6 +1,7 @@
 from typing import overload
 from matplotlib import pyplot as plt
 from matplotlib import patches as patches
+import math
 
 __author__ = 'Shishir Adhikari'
 import numpy as np
@@ -47,6 +48,8 @@ class SOM:
         self.init_radius = min(self.network_dimensions[0], self.network_dimensions[1])
         # initialize weight vectors
         self.num_features = num_features
+        self.weight = 0
+        self.new_w = 0
         self.initialize()
 
     def initialize(self):
@@ -97,16 +100,19 @@ class SOM:
                 # for (k = 1,..., K)
                 for x in range(self.network_dimensions[0]):
                     for y in range(self.network_dimensions[1]):
-                        weight = self.net[x, y, :].reshape(1, self.num_features)
+                        self.weight = self.net[x, y, :].reshape(1, self.num_features)
                         w_dist = np.sum((np.array([x, y]) - bmu_idx) ** 2)
                         # if the distance is within the current neighbourhood radius
                         if w_dist <= radius ** 2:
                             # update weight vectors wk using Eq. (3)
                             influence = SOM.calculate_influence(w_dist, radius)
-                            new_w = weight + (learning_rate * influence * (row_t - weight))
-                            self.net[x, y, :] = new_w.reshape(1, self.num_features)
+                            self.new_w = self.weight + (learning_rate * influence * (row_t - self.weight))
+                            self.net[x, y, :] = self.new_w.reshape(1, self.num_features)
         if fig is not None:
             plt.show()
+
+    def get_weights(self):
+        return self.weight, self.new_w
 
     @staticmethod
     def calculate_influence(distance, radius):
@@ -182,3 +188,13 @@ class SOM1B(SOM):
         # paper util: http://www.ijmo.org/vol6/504-M08.pdf
         return self.init_radius * (1 / iteration)
 
+
+class SOM1C(SOM):
+
+    def __init__(self, net_x_dim, net_y_dim, num_features):
+        super().__init__(net_x_dim, net_y_dim, num_features)
+
+    def calculate_influence(distance, radius):
+        # usando uma distribuição de cauchy conforme apresentada em: 
+        # https://www.itl.nist.gov/div898/handbook/eda/section3/eda3663.htm
+        return 1 / (math.pi * (1 + (radius**2)))
